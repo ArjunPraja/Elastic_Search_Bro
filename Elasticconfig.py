@@ -1,8 +1,12 @@
 # from elasticsearch import Elasticsearch
 
+
+# ---------------------------This is the not secure one because here it can not varify the cetificate that can identify that the request comming is secure or not 
+
+
 # es = Elasticsearch(
 #     "https://localhost:9200",
-#     basic_auth=("elastic", "lKkPPbV*QMSHU-cFce3A"),
+    # basic_auth=("elastic", "lKkPPbV*QMSHU-cFce3A"),        
 #     verify_certs=False  # just for local testing
 # )
 
@@ -11,7 +15,7 @@
 
 
 
-
+#----------------------------- Here We Are  checking  the ca_certs autorithy that can check the requests is commit are the secure or not 
 
 from elasticsearch import Elasticsearch
 
