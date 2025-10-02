@@ -25,4 +25,11 @@ es = Elasticsearch(
     ca_certs=r"C:\Users\ArjunPrajapati\Downloads\elasticsearch-9.1.4-windows-x86_64\elasticsearch-9.1.4\config\certs\http_ca.crt"
 )
 
+
+print("Elastic Search Connected Successfully")
+
+client_info = es.info()
+print(client_info)
+print(client_info.body)
+
 print("Connected?", es.ping())
