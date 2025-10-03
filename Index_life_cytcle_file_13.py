@@ -1,142 +1,190 @@
 from Elasticconfig_file_1 import es
 from rich.console import Console
-import json
-from elasticsearch import exceptions
+from elasticsearch.exceptions import ApiError
 
 console = Console()
-
-index_name = "my_index"
-policy_name = "my_policy"
+INDEX_NAME = "my_index"
+ALIAS_NAME = "my_index_alias"
+POLICY_NAME = "my_policy"
 
 # -------------------------
 # 1. Create / Update ILM Policy
 # -------------------------
-policy_body = {
-    "policy": {
-        "phases": {
-            "hot": {
-                "min_age": "0ms",
-                "actions": {
-                    "rollover": {"max_size": "50gb", "max_age": "30d"}
+def create_or_update_policy():
+    policy_body = {
+        "policy": {
+            "phases": {
+                "hot": {
+                    "min_age": "0ms",
+                    "actions": {"rollover": {"max_size": "50gb", "max_age": "30d"}}
+                },
+                "delete": {
+                    "min_age": "90d",
+                    "actions": {"delete": {}}
                 }
-            },
-            "warm": {
-                "min_age": "30d",
-                "actions": {"forcemerge": {"max_num_segments": 1}}
-            },
-            "delete": {
-                "min_age": "90d",
-                "actions": {"delete": {}}
             }
         }
     }
-}
-
-try:
-    response = es.ilm.put_lifecycle(name=policy_name, body=policy_body)
-    console.print_json(json.dumps(response))
-except exceptions.ElasticsearchException as e:
-    console.print(f"[red]Error creating/updating policy:[/red] {e}")
+    try:
+        response = es.ilm.put_lifecycle(name=POLICY_NAME, body=policy_body)
+        console.print_json(data=response.body)
+        console.print(f"[green]ILM policy '{POLICY_NAME}' created/updated successfully ✅[/green]")
+    except ApiError as e:
+        console.print(f"[red]Error creating/updating policy:[/red] {e}")
 
 # -------------------------
-# 2. Assign Policy to Index (or Update Index Settings)
+# 2. Assign Policy to Index
 # -------------------------
-try:
-    if not es.indices.exists(index=index_name):
-        resp = es.indices.create(
-            index=index_name,
-            body={
-                "settings": {
-                    "index.lifecycle.name": policy_name,
-                    "index.lifecycle.rollover_alias": "my_index_alias"
-                },
-                "aliases": {"my_index_alias": {}}
-            }
-        )
-        console.print_json(json.dumps(resp))
-    else:
-        resp = es.indices.put_settings(
-            index=index_name,
-            body={"index.lifecycle.name": policy_name}
-        )
-        console.print_json(json.dumps(resp))
-except exceptions.ElasticsearchException as e:
-    console.print(f"[red]Error assigning policy:[/red] {e}")
+def assign_policy_to_index():
+    try:
+        if not es.indices.exists(index=INDEX_NAME):
+            resp = es.indices.create(
+                index=INDEX_NAME,
+                body={
+                    "settings": {
+                        "index.lifecycle.name": POLICY_NAME,
+                        "index.lifecycle.rollover_alias": ALIAS_NAME
+                    },
+                    "aliases": {ALIAS_NAME: {}}
+                }
+            )
+            console.print_json(data=resp.body)
+            console.print(f"[green]Index '{INDEX_NAME}' created and ILM policy assigned ✅[/green]")
+        else:
+            resp = es.indices.put_settings(
+                index=INDEX_NAME,
+                body={"index.lifecycle.name": POLICY_NAME}
+            )
+            console.print_json(data=resp.body)
+            console.print(f"[green]ILM policy assigned to existing index '{INDEX_NAME}' ✅[/green]")
+    except ApiError as e:
+        console.print(f"[red]Error assigning policy to index:[/red] {e}")
 
 # -------------------------
 # 3. Remove Policy from Index
 # -------------------------
-try:
-    remove_response = es.ilm.remove_policy(index=index_name)
-    console.print_json(json.dumps(remove_response))
-except exceptions.ElasticsearchException as e:
-    console.print(f"[red]Error removing policy:[/red] {e}")
+def remove_policy():
+    try:
+        resp = es.ilm.remove_policy(index=INDEX_NAME)
+        console.print_json(data=resp.body)
+        console.print(f"[green]ILM policy removed from '{INDEX_NAME}' ✅[/green]")
+    except ApiError as e:
+        console.print(f"[red]Error removing policy:[/red] {e}")
 
 # -------------------------
 # 4. Move Index to a Lifecycle Step
 # -------------------------
-try:
-    move_response = es.ilm.move_to_step(
-        index=index_name,
-        body={
-            "current_step": {"phase": "hot", "action": "rollover", "name": "check-rollover-ready"},
-            "next_step": {"phase": "hot", "action": "rollover", "name": "rollover"}
-        }
-    )
-    console.print_json(json.dumps(move_response))
-except exceptions.ElasticsearchException as e:
-    console.print(f"[red]Error moving index to step:[/red] {e}")
+def move_index_to_step():
+    try:
+        resp = es.ilm.move_to_step(
+            index=INDEX_NAME,
+            body={
+                "current_step": {"phase": "hot", "action": "rollover", "name": "check-rollover-ready"},
+                "next_step": {"phase": "hot", "action": "rollover", "name": "rollover"}
+            }
+        )
+        console.print_json(data=resp.body)
+        console.print(f"[green]Index '{INDEX_NAME}' moved to next ILM step ✅[/green]")
+    except ApiError as e:
+        console.print(f"[red]Error moving index to step:[/red] {e}")
 
 # -------------------------
 # 5. Retry Policy if Failed
 # -------------------------
-try:
-    retry_response = es.ilm.retry(index=index_name)
-    console.print_json(json.dumps(retry_response))
-except exceptions.ElasticsearchException as e:
-    console.print(f"[red]Error retrying ILM:[/red] {e}")
+def retry_ilm():
+    try:
+        resp = es.ilm.retry(index=INDEX_NAME)
+        console.print_json(data=resp.body)
+        console.print(f"[green]ILM retry triggered for '{INDEX_NAME}' ✅[/green]")
+    except ApiError as e:
+        console.print(f"[red]Error retrying ILM:[/red] {e}")
 
 # -------------------------
 # 6. Explain Lifecycle for Index
 # -------------------------
-try:
-    explanation = es.ilm.explain(index=index_name)
-    console.print_json(json.dumps(explanation))
-except exceptions.ElasticsearchException as e:
-    console.print(f"[red]Error explaining ILM:[/red] {e}")
+def explain_lifecycle():
+    try:
+        resp = es.ilm.explain_lifecycle(index=INDEX_NAME)
+        console.print_json(data=resp.body)
+        console.print(f"[green]Lifecycle explanation fetched for '{INDEX_NAME}' ✅[/green]")
+    except ApiError as e:
+        console.print(f"[red]Error explaining ILM:[/red] {e}")
 
 # -------------------------
 # 7. Start ILM
 # -------------------------
-try:
-    start_response = es.ilm.start()
-    console.print_json(json.dumps(start_response))
-except exceptions.ElasticsearchException as e:
-    console.print(f"[red]Error starting ILM:[/red] {e}")
+def start_ilm():
+    try:
+        resp = es.ilm.start()
+        console.print_json(data=resp.body)
+        console.print("[green]ILM started ✅[/green]")
+    except ApiError as e:
+        console.print(f"[red]Error starting ILM:[/red] {e}")
 
 # -------------------------
 # 8. Stop ILM
 # -------------------------
-try:
-    stop_response = es.ilm.stop()
-    console.print_json(json.dumps(stop_response))
-except exceptions.ElasticsearchException as e:
-    console.print(f"[red]Error stopping ILM:[/red] {e}")
+def stop_ilm():
+    try:
+        resp = es.ilm.stop()
+        console.print_json(data=resp.body)
+        console.print("[green]ILM stopped ✅[/green]")
+    except ApiError as e:
+        console.print(f"[red]Error stopping ILM:[/red] {e}")
 
 # -------------------------
 # 9. Get ILM Status
 # -------------------------
-try:
-    status = es.ilm.get_status()
-    console.print_json(json.dumps(status))
-except exceptions.ElasticsearchException as e:
-    console.print(f"[red]Error fetching ILM status:[/red] {e}")
+def get_ilm_status():
+    try:
+        resp = es.ilm.get_status()
+        console.print_json(data=resp.body)
+        console.print("[green]ILM status fetched ✅[/green]")
+    except ApiError as e:
+        console.print(f"[red]Error fetching ILM status:[/red] {e}")
 
 # -------------------------
 # 10. Delete ILM Policy
 # -------------------------
-try:
-    delete_response = es.ilm.delete_lifecycle(name=policy_name)
-    console.print_json(json.dumps(delete_response))
-except exceptions.ElasticsearchException as e:
-    console.print(f"[red]Error deleting ILM policy:[/red] {e}")
+def delete_policy():
+    try:
+        resp = es.ilm.delete_lifecycle(name=POLICY_NAME)
+        console.print_json(data=resp.body)
+        console.print(f"[green]ILM policy '{POLICY_NAME}' deleted ✅[/green]")
+    except ApiError as e:
+        console.print(f"[red]Error deleting ILM policy:[/red] {e}")
+
+
+# =========================
+# MAIN EXECUTION
+# =========================
+if __name__ == "__main__":
+    print("\n\n\n\n\nFunction Name: Create_or_update_Policy_Output")
+    create_or_update_policy()
+
+    print("\n\n\n\n\nFunction Name: Assign_Policy_to_Index_Output")
+    assign_policy_to_index()
+
+    print("\n\n\n\n\nFunction Name: Explain_Lifecycle_Output")
+    explain_lifecycle()
+
+    print("\n\n\n\n\nFunction Name: Start_ILM_Output")
+    start_ilm()
+
+    print("\n\n\n\n\nFunction Name: Get_ILM_Status_Output")
+    get_ilm_status()
+
+    print("\n\n\n\n\nFunction Name: Retry_ILM_Output")
+    retry_ilm()
+
+    print("\n\n\n\n\nFunction Name: Move_Index_to_Step_Output")
+    move_index_to_step()
+
+    print("\n\n\n\n\nFunction Name: Stop_ILM_Output")
+    stop_ilm()
+
+    print("\n\n\n\n\nFunction Name: Remove_Policy_Output")
+    remove_policy()
+
+    print("\n\n\n\n\nFunction Name: Delete_Policy_Output")
+    delete_policy()
