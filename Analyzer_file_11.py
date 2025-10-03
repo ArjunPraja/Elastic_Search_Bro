@@ -7,6 +7,19 @@ console = Console()
 
 # Run Code And Understand How Elasticsearch Anylyzer Works
 
+# Practical Flow:- 
+
+        # Input text → Analyzer
+
+        # Analyzer → Tokenizer → splits into tokens
+
+        # Tokens → Token Filters (lowercase, stopwords, stemming, etc.)
+
+        # Indexed tokens stored in Elasticsearch → ready for search
+
+
+
+
 # Flow Of Anlayzer
 
                                         # +------------------------+
