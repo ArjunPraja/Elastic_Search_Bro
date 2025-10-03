@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
 
     # Update Docuements 
-    es.update(index="products",id="tFjLp5kB7mX1UbMSkc0E",doc={"doc":{"title":"Updated Document"}})
+    es.options(ignore_status=404).update(index="products",id="6",doc={"doc":{"title":"Updated Document"}})
     print("Document Updated Successfully")
 
 
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
 
      #read Document
-    docs=es.options(ignore_status=404).get(index="products",id="tFjLp5kB7mX1UbMSkc0E")
+    docs=es.options(ignore_status=404).get(index="products",id="5")
     console.print_json(data=docs.body)
     print("Document Read Successfully")
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
 
     # Delete Document
-    es.options(ignore_status=404).delete(index="products",id="tFjLp5kB7mX1UbMSkc0E")
+    es.options(ignore_status=404).delete(index="products",id="6")
     print("Document Deleted Successfully")
 
 
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     
 
      #read Document
-    docs=es.options(ignore_status=404).get(index="products",id="tFjLp5kB7mX1UbMSkc0E")
+    docs=es.options(ignore_status=404).get(index="products",id="5")
     console.print_json(data=docs.body)
     print("Document Read Successfully")
 
