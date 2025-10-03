@@ -4,6 +4,18 @@ from rich.table import Table
 
 console = Console()
 
+
+# Important Notes:
+# This script demonstrates how to interact with various Elasticsearch cluster APIs using the Python Elasticsearch client.
+# It retrieves and displays information about nodes, cluster health, state, stats, settings, node stats, and hot threads.
+
+
+# Just Read The Things no need to remember anythigns or write anything
+
+
+
+
+
 # =======================================
 # 1. Get Node Info (_nodes/_local)
 # =======================================
